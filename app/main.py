@@ -15,15 +15,33 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "ui", "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "ui", "templates")
 
-# Mount static files
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+# Mount static files safely
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# Setup templates
-templates = Jinja2Templates(directory=TEMPLATES_DIR)
+# Setup templates safely
+if os.path.isdir(TEMPLATES_DIR):
+    templates = Jinja2Templates(directory=TEMPLATES_DIR)
+else:
+    templates = None
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    if templates:
+        return templates.TemplateResponse("index.html", {"request": request})
+    return f"<h1>Error: Templates directory not found at {TEMPLATES_DIR}</h1>"
+
+@app.get("/api/debug_paths")
+async def debug_paths():
+    return {
+        "BASE_DIR": BASE_DIR,
+        "STATIC_DIR": STATIC_DIR,
+        "TEMPLATES_DIR": TEMPLATES_DIR,
+        "static_exists": os.path.isdir(STATIC_DIR),
+        "templates_exists": os.path.isdir(TEMPLATES_DIR),
+        "cwd": os.getcwd(),
+        "files_in_base": os.listdir(BASE_DIR) if os.path.exists(BASE_DIR) else []
+    }
 
 @app.get("/api/radar")
 async def get_radar_data(day: int):
