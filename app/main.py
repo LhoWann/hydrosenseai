@@ -7,8 +7,16 @@ from app.core.spatial_grid import generate_grid
 from app.core.ml_engine import run_inference, PredictionRequest
 from app.utils.bmkg_classifier import classify_rainfall
 from app.utils.date_converter import doy_to_date
+import traceback
 
 app = FastAPI(title="HydroSense AI")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return HTMLResponse(
+        status_code=500,
+        content=f"<h1>Internal Server Error</h1><pre>{traceback.format_exc()}</pre>"
+    )
 
 # Use absolute paths so Vercel can find the directories regardless of CWD
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
